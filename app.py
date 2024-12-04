@@ -1,21 +1,13 @@
 import os
-from PIL import Image
+from PIL import Image, ImageOps
 from fpdf import FPDF
 import streamlit as st
+from streamlit_sortables import sort_items
 
 # Initialize session state for uploaded images
 if "images" not in st.session_state:
     st.session_state.images = []
     st.session_state.image_names = []
-
-# Function to reorder images
-def reorder_images(from_idx, to_idx):
-    images = st.session_state.images
-    names = st.session_state.image_names
-    image = images.pop(from_idx)
-    name = names.pop(from_idx)
-    images.insert(to_idx, image)
-    names.insert(to_idx, name)
 
 # Function to create PDF
 def create_pdf():
@@ -31,7 +23,7 @@ def create_pdf():
     return output_file
 
 # Streamlit UI
-st.title("Image to PDF Converter")
+st.title("Advanced Image to PDF Converter")
 
 # Upload images
 uploaded_files = st.file_uploader("Upload Images", accept_multiple_files=True, type=["jpg", "jpeg", "png"])
@@ -41,30 +33,40 @@ if uploaded_files:
         st.session_state.images.append(img)
         st.session_state.image_names.append(uploaded_file.name)
 
-# Display uploaded images
+# Display uploaded images with options
 if st.session_state.images:
     st.subheader("Uploaded Images:")
-    for idx, name in enumerate(st.session_state.image_names):
-        st.write(f"{idx + 1}. {name}")
     
-    # Reorder images
-    st.subheader("Reorder Images:")
-    from_idx = st.number_input("Move from position", min_value=1, max_value=len(st.session_state.images), step=1) - 1
-    to_idx = st.number_input("Move to position", min_value=1, max_value=len(st.session_state.images), step=1) - 1
-    if st.button("Reorder"):
-        reorder_images(from_idx, to_idx)
-        st.success("Image order updated!")
-
-    # Delete images
-    st.subheader("Delete Image:")
-    delete_idx = st.number_input("Enter position to delete", min_value=1, max_value=len(st.session_state.images), step=1) - 1
-    if st.button("Delete"):
-        del st.session_state.images[delete_idx]
-        del st.session_state.image_names[delete_idx]
-        st.success("Image deleted!")
+    # Drag-and-drop reordering
+    reordered_names = sort_items(st.session_state.image_names, direction="horizontal")
+    reordered_images = [st.session_state.images[st.session_state.image_names.index(name)] for name in reordered_names]
+    st.session_state.image_names = reordered_names
+    st.session_state.images = reordered_images
+    
+    # Preview images with options
+    for idx, (img, name) in enumerate(zip(st.session_state.images, st.session_state.image_names)):
+        st.write(f"**{idx + 1}. {name}**")
+        
+        # Display image
+        st.image(img, width=150)
+        
+        # Rotation options
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button(f"Rotate Left {name}", key=f"rotate_left_{idx}"):
+                st.session_state.images[idx] = img.rotate(90, expand=True)
+        with col2:
+            if st.button(f"Rotate Right {name}", key=f"rotate_right_{idx}"):
+                st.session_state.images[idx] = img.rotate(-90, expand=True)
+        with col3:
+            if st.button(f"Delete {name}", key=f"delete_{idx}"):
+                del st.session_state.images[idx]
+                del st.session_state.image_names[idx]
+                st.experimental_rerun()
 
     # Create PDF
     if st.button("Create PDF"):
         pdf_path = create_pdf()
         with open(pdf_path, "rb") as pdf_file:
             st.download_button("Download PDF", pdf_file, file_name="output.pdf")
+            
