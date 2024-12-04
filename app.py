@@ -12,9 +12,8 @@ if "images" not in st.session_state:
 # Function to create PDF
 def create_pdf():
     pdf = FPDF()
-    for img in st.session_state.images:
-        # Ensure image fits within the page
-        temp_file = "temp_image.jpg"
+    for idx, img in enumerate(st.session_state.images):
+        temp_file = f"temp_image_{idx}.jpg"
         img.save(temp_file)
         pdf.add_page()
         pdf.image(temp_file, x=10, y=10, w=190)
@@ -32,7 +31,7 @@ if uploaded_files:
     for uploaded_file in uploaded_files:
         # Check if the image is already uploaded (prevent duplicates)
         if uploaded_file.name not in st.session_state.image_names:
-            img = Image.open(uploaded_file)
+            img = Image.open(uploaded_file).convert("RGB")
             st.session_state.images.append(img)
             st.session_state.image_names.append(uploaded_file.name)
 
