@@ -30,9 +30,11 @@ st.title("Image to PDF Converter")
 uploaded_files = st.file_uploader("Upload Images", accept_multiple_files=True, type=["jpg", "jpeg", "png"])
 if uploaded_files:
     for uploaded_file in uploaded_files:
-        img = Image.open(uploaded_file)
-        st.session_state.images.append(img)
-        st.session_state.image_names.append(uploaded_file.name)
+        # Check if the image is already uploaded (prevent duplicates)
+        if uploaded_file.name not in st.session_state.image_names:
+            img = Image.open(uploaded_file)
+            st.session_state.images.append(img)
+            st.session_state.image_names.append(uploaded_file.name)
 
 # Display uploaded images with options
 if st.session_state.images:
@@ -70,4 +72,4 @@ if st.session_state.images:
         pdf_path = create_pdf()
         with open(pdf_path, "rb") as pdf_file:
             st.download_button("Download PDF", pdf_file, file_name="output.pdf")
-                
+            
